@@ -17,7 +17,7 @@ app.get("/users", async (req, res) => {
     const users = usersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(users);
   } catch (error) {
-    res.status(500).json({ error: "Error fetching users" });
+    res.status(500).json({ error: "Error fetching user" });
   }
 });
 
