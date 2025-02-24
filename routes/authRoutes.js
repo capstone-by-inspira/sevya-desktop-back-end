@@ -1,97 +1,114 @@
 import express from "express";
-import admin from "../config/firebaseAdmin.js";
+import {firebaseAdmin, db, serverTimestamp} from "../config/firebaseAdmin.js";
 import jwt from "jsonwebtoken";
-import axios from "axios";
 import dotenv from "dotenv";
-import passport from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 dotenv.config();
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET;
-const FIREBASE_AUTH_URL = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`;
-
-// Google OAuth Strategy
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:8800/auth/google/callback"
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        let user;
-        try {
-          user = await admin.auth().getUserByEmail(profile.emails[0].value);
-        } catch (error) {
-          user = await admin.auth().createUser({
-            email: profile.emails[0].value,
-            displayName: profile.displayName,
-            photoURL: profile.photos[0]?.value,
-          });
-        }
-
-        const jwtToken = jwt.sign({ uid: user.uid }, JWT_SECRET, { expiresIn: "1h" });
-
-        done(null, { uid: user.uid, jwtToken });
-      } catch (error) {
-        done(error, null);
-      }
-    }
-  )
-);
-
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
 
 // Email/Password Signup
+
 router.post("/signup", async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const userRecord = await admin.auth().createUser({ email, password });
-    const jwtToken = jwt.sign({ uid: userRecord.uid }, JWT_SECRET, { expiresIn: "1h" });
-
-    res.status(201).json({ token: jwtToken });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Email/Password Login
-router.post("/login", async (req, res) => {
-    const { email, password } = req.body;
-  
     try {
-      const response = await axios.post(FIREBASE_AUTH_URL, { email, password, returnSecureToken: true });
-      const { localId, idToken, email: userEmail, displayName, photoUrl } = response.data;
+      const { email, password, name , collectionName } = req.body;
   
-      // Generate a JWT token for backend authentication
-      const jwtToken = jwt.sign({ uid: localId }, JWT_SECRET, { expiresIn: "1h" });
-  
-      // Send both token and user info
-      res.status(200).json({
-        token: jwtToken,
-        user: {
-          uid: localId,
-          email: userEmail,
-          displayName: displayName || "Anonymous",
-          photoUrl: photoUrl || "",
-        },
+      // Create user in Firebase Authentication
+      const userRecord = await firebaseAdmin.auth().createUser({
+        email,
+        password,
+        displayName: name,
       });
+
+      await db.collection(collectionName).doc(userRecord.uid).set({
+        uid: userRecord.uid,
+        name,
+        email,
+        createdAt: serverTimestamp,
+      });
+  
+      // Generate JWT Token
+      const token = jwt.sign(
+        { uid: userRecord.uid, email: userRecord.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" }
+      );
+  
+      res.json({ message: "User created successfully", token, user: userRecord });
     } catch (error) {
-      res.status(401).json({ error: "Invalid email or password" });
+      console.error("Signup Error:", error);
+      res.status(400).json({ error: error.message });
     }
   });
   
 
-// Google Auth Routes
-router.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
-router.get("/auth/google/callback", passport.authenticate("google", { failureRedirect: "/" }), (req, res) => {
-  res.json({ token: req.user.jwtToken });
-});
+
+
+
+
+  router.post("/admin/firebase", async (req, res) => {
+    try {
+      const { idToken , collectionName} = req.body;
+      const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+      console.log(decodedToken);
+      const { uid, email , name } = decodedToken;
+  
+      const caregiverRef = db.collection("caregiver").doc(uid);
+      const caregiverDoc = await caregiverRef.get();
+
+      if (caregiverDoc.exists) {
+          return res.status(403).json({ error: "Access denied. Caregivers are not allowed." });
+      }
+
+      const adminRef = db.collection(collectionName).doc(uid);
+        const adminDoc = await adminRef.get();
+
+        if (!adminDoc.exists) {
+            await adminRef.set({
+                uid,
+                email,
+                name,
+                createdAt: serverTimestamp,
+            });
+        }
+
+     const jwtToken = jwt.sign({ uid, email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+  
+      res.json({ token: jwtToken, user: { uid, email , name} });
+    } catch (error) {
+      console.error("Auth Error:", error);
+      res.status(401).json({ error: "Authentication failed" });
+    }
+  });
+
+  router.post("/caregiver/firebase", async (req, res) => {
+    try {
+      const { idToken , collectionName} = req.body;
+      const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+      console.log(decodedToken);
+      const { uid, email , name } = decodedToken;
+  
+      const caregiverRef = db.collection("caregiver").doc(uid);
+      const caregiverDoc = await caregiverRef.get();
+
+      if (!caregiverDoc.exists) {
+          return res.status(403).json({ error: "Contact your agency for credintials." });
+      }
+
+     
+    
+
+     const jwtToken = jwt.sign({ uid, email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+  
+      res.json({ token: jwtToken, user: { uid, email , name} });
+    } catch (error) {
+      console.error("Auth Error:", error);
+      res.status(401).json({ error: "Authentication failed" });
+    }
+  });
+  
+
+
 
 export default router;

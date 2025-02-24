@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import session from "express-session";
 import passport from "passport";
 import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
@@ -24,8 +25,13 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Routes
-app.use("/api", authRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+
+
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+
