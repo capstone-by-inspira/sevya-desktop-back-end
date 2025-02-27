@@ -2,6 +2,7 @@ import express from "express";
 import {firebaseAdmin, db, serverTimestamp} from "../config/firebaseAdmin.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import {sendWelcomeEmail} from '../utils/nodemailer.js'
 
 dotenv.config();
 
@@ -27,13 +28,20 @@ router.post("/signup", async (req, res) => {
         createdAt: serverTimestamp,
       });
   
+
       // Generate JWT Token
       const token = jwt.sign(
         { uid: userRecord.uid, email: userRecord.email },
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
       );
+
+
   
+      if(collectionName == 'caregiver'){
+      await sendWelcomeEmail(name, email, password);
+      }
+
       res.json({ message: "User created successfully", token, user: userRecord });
     } catch (error) {
       console.error("Signup Error:", error);
@@ -44,8 +52,7 @@ router.post("/signup", async (req, res) => {
 
 
 
-
-
+ 
 
   router.post("/admin/firebase", async (req, res) => {
     try {
