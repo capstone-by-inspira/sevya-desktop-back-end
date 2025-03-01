@@ -35,8 +35,6 @@ router.post("/signup", async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
       );
-
-
   
       if(collectionName == 'caregiver'){
       await sendWelcomeEmail(name, email, password);

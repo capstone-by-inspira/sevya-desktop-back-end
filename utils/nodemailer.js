@@ -4,8 +4,6 @@ dotenv.config();
 import nodemailer from "nodemailer";
 import smtpTransport from 'nodemailer-smtp-transport';
 
-
-
 const transporter = nodemailer.createTransport(smtpTransport({
     host: `${process.env.SMTP_HOST}`,
     port:  `${process.env.SMTP_PORT}`,
@@ -14,6 +12,9 @@ const transporter = nodemailer.createTransport(smtpTransport({
       user: `${process.env.SMTP_MAIL}`,
       pass: `${process.env.SMTP_PASSWORD}`,
     },
+    tls:{
+        rejectUnauthorized: false,
+    }
   }));
 
 export const sendWelcomeEmail = async (userName, toEmail, password ) => {
@@ -27,11 +28,10 @@ export const sendWelcomeEmail = async (userName, toEmail, password ) => {
         \n Here is your password : ${password}
         \n\n We are excited to have you.\n\nBest Regards,\nThe Sevya Team`,
     };
-
     try {
         await transporter.sendMail(mailOptions);
         console.log("Email sent successfully!");
-    } catch (error) {
+    }catch (error) {
         console.error("Error sending email:", error);
     }
 };

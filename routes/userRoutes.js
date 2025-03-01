@@ -21,9 +21,12 @@ const verifyJWT = (req, res, next) => {
 };
 
 // **CRUD Operations on Firestore "users" Collection**
+
 const usersCollection = db.collection("users");
 
+
 // **Create User**
+
 router.post("/", verifyJWT, async (req, res) => {
   try {
     const { name, email } = req.body;
