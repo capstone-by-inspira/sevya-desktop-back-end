@@ -1,5 +1,6 @@
 import express from "express";
-import { db } from "../config/firebaseAdmin";
+import {firebaseAdmin, db, serverTimestamp} from "../config/firebaseAdmin.js";
+
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
@@ -8,76 +9,99 @@ dotenv.config();
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// **Middleware to Verify JWT**
+
+
+
+
+// Middleware to verify JWT
 const verifyJWT = (req, res, next) => {
+  
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: "Invalid Token" });
+    if (err) return res.status(403).json({ error: "Invalid token" });
     req.user = decoded;
     next();
   });
 };
 
-// **CRUD Operations on Firestore "users" Collection**
-
-const usersCollection = db.collection("users");
-
-
-// **Create User**
-
-router.post("/", verifyJWT, async (req, res) => {
+/**
+ * Create a document in any Firestore collection
+ * @route POST /api/:collection
+ */
+router.post("/:collection", verifyJWT, async (req, res) => {
   try {
-    const { name, email } = req.body;
-    const newUser = { name, email, createdAt: new Date() };
-    const docRef = await usersCollection.add(newUser);
-    res.json({ id: docRef.id, ...newUser });
+    const { collection } = req.params;
+    const data = req.body;
+    const docRef = await db.collection(collection).add({ ...data, createdAt: new Date() });
+
+    res.json({ id: docRef.id, ...data });
   } catch (error) {
-    res.status(500).json({ error: "Failed to create user" });
+    res.status(500).json({ error: "Failed to create document" });
   }
 });
 
-// **Read All Users**
-router.get("/", verifyJWT, async (req, res) => {
+/**
+ * Get all documents from a Firestore collection
+ * @route GET /api/:collection
+ */
+router.get("/:collection", verifyJWT, async (req, res) => {
   try {
-    const snapshot = await usersCollection.get();
-    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json(users);
+    const { collection } = req.params;
+    const snapshot = await db.collection(collection).get();
+    const documents = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    res.json(documents);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch users" });
+    res.status(500).json({ error: "Failed to fetch documents" });
   }
 });
 
-// **Read Single User**
-router.get("/:id", verifyJWT, async (req, res) => {
+/**
+ * Get a single document by ID
+ * @route GET /api/:collection/:id
+ */
+router.get("/:collection/:id", verifyJWT, async (req, res) => {
   try {
-    const doc = await usersCollection.doc(req.params.id).get();
-    if (!doc.exists) return res.status(404).json({ error: "User not found" });
+    const { collection, id } = req.params;
+    const doc = await db.collection(collection).doc(id).get();
+
+    if (!doc.exists) return res.status(404).json({ error: "Document not found" });
     res.json({ id: doc.id, ...doc.data() });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch user" });
+    res.status(500).json({ error: "Failed to fetch document" });
   }
 });
 
-// **Update User**
-router.put("/:id", verifyJWT, async (req, res) => {
+/**
+ * Update a document by ID
+ * @route PUT /api/:collection/:id
+ */
+router.put("/:collection/:id", verifyJWT, async (req, res) => {
   try {
-    const { name, email } = req.body;
-    await usersCollection.doc(req.params.id).update({ name, email });
-    res.json({ id: req.params.id, name, email });
+    const { collection, id } = req.params;
+    const data = req.body;
+
+    await db.collection(collection).doc(id).update({ ...data, updatedAt: new Date() });
+    res.json({ id, ...data });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update user" });
+    res.status(500).json({ error: "Failed to update document" });
   }
 });
 
-// **Delete User**
-router.delete("/:id", verifyJWT, async (req, res) => {
+/**
+ * Delete a document by ID
+ * @route DELETE /api/:collection/:id
+ */
+router.delete("/:collection/:id", verifyJWT, async (req, res) => {
   try {
-    await usersCollection.doc(req.params.id).delete();
-    res.json({ message: "User deleted successfully" });
+    const { collection, id } = req.params;
+    await db.collection(collection).doc(id).delete();
+
+    res.json({ message: "Document deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Failed to delete user" });
+    res.status(500).json({ error: "Failed to delete document" });
   }
 });
 
