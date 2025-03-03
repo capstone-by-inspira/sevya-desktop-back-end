@@ -43,7 +43,7 @@ router.post("/signup", async (req, res) => {
         { expiresIn: "1h" }
       );
   
-      if(collectionName == 'caregiver'){
+      if(collectionName == 'caregivers'){
       await sendWelcomeEmail(name, email, password);
       }
 
@@ -56,7 +56,20 @@ router.post("/signup", async (req, res) => {
   
 
 
+  
+  router.delete("/deleteUser", async (req, res) => {
 
+    const { uid } = req.body;
+    console.log(uid);
+  
+    try {
+      await firebaseAdmin.auth().deleteUser(uid);
+      res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
  
 
   router.post("/admin/firebase", async (req, res) => {
@@ -66,7 +79,7 @@ router.post("/signup", async (req, res) => {
       console.log(decodedToken);
       const { uid, email , name } = decodedToken;
   
-      const caregiverRef = db.collection("caregiver").doc(uid);
+      const caregiverRef = db.collection("caregivers").doc(uid);
       const caregiverDoc = await caregiverRef.get();
 
       if (caregiverDoc.exists) {
@@ -101,7 +114,7 @@ router.post("/signup", async (req, res) => {
       console.log(decodedToken);
       const { uid, email , name } = decodedToken;
   
-      const caregiverRef = db.collection("caregiver").doc(uid);
+      const caregiverRef = db.collection("caregivers").doc(uid);
       const caregiverDoc = await caregiverRef.get();
 
       if (!caregiverDoc.exists) {

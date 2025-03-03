@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
-import passport from "passport";
+
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
@@ -23,8 +23,6 @@ app.use(
     saveUninitialized: false,
   })
 );
-app.use(passport.initialize());
-app.use(passport.session());
 
 // Routes
 app.use("/api/auth", authRoutes);
