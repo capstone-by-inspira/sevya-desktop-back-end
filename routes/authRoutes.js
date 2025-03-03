@@ -12,8 +12,16 @@ const router = express.Router();
 
 router.post("/signup", async (req, res) => {
     try {
-      const { email, password, name , collectionName } = req.body;
+      const { user } = req.body;
   
+      const email = user.email
+      const password = user.password
+      const name = user.firstName + ' ' + user.lastName;
+      const collectionName = user.collectionName
+
+      const { password: _, collectionName: __, ...filteredUser } = user;
+
+
       // Create user in Firebase Authentication
       const userRecord = await firebaseAdmin.auth().createUser({
         email,
@@ -23,8 +31,7 @@ router.post("/signup", async (req, res) => {
 
       await db.collection(collectionName).doc(userRecord.uid).set({
         uid: userRecord.uid,
-        name,
-        email,
+        ...filteredUser,
         createdAt: serverTimestamp,
       });
   
@@ -102,8 +109,6 @@ router.post("/signup", async (req, res) => {
       }
 
      
-    
-
      const jwtToken = jwt.sign({ uid, email }, process.env.JWT_SECRET, { expiresIn: "1h" });
   
       res.json({ token: jwtToken, user: { uid, email , name} });
