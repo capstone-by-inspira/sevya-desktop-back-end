@@ -59,12 +59,48 @@ router.get("/:collection", verifyJWT, async (req, res) => {
 });
 
 /**
+ * Get documents by dynamic key-value pair
+ * @route GET /api/:collection/query
+ */
+router.get("/:collection/query", verifyJWT, async (req, res) => {
+  try {
+    const { collection } = req.params;
+    const { key, value } = req.query;
+
+    console.log('request', req.query);
+    if (!key || !value) {
+      return res.status(400).json({ error: "Key and value must be provided" });
+    }
+
+    const querySnapshot = await db
+      .collection(collection)
+      .where(key, "==", value)
+      .get();
+
+    if (querySnapshot.empty) {
+      return res.status(404).json({ error: "No documents found" });
+    }
+
+    const documents = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json(documents);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch documents" });
+  }
+});
+
+/**
  * Get a single document by ID
  * @route GET /api/:collection/:id
  */
 router.get("/:collection/:id", verifyJWT, async (req, res) => {
   try {
     const { collection, id } = req.params;
+    console.log('request id', req.query, req.params);
     const doc = await db.collection(collection).doc(id).get();
 
     if (!doc.exists) return res.status(404).json({ error: "Document not found" });
