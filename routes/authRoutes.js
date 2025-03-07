@@ -3,6 +3,7 @@ import {firebaseAdmin, db, serverTimestamp} from "../config/firebaseAdmin.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import {sendWelcomeEmail} from '../utils/nodemailer.js'
+import {generateHealthPlan} from '../utils/geminiAi.js'
 
 dotenv.config();
 
@@ -128,6 +129,25 @@ router.post("/signup", async (req, res) => {
     } catch (error) {
       console.error("Auth Error:", error);
       res.status(401).json({ error: "Authentication failed" });
+    }
+  });
+
+  router.post('/generate-health-plan', async (req, res) => {
+    const { patientData } = req.body;
+  
+    if (!patientData) {
+      return res.status(400).json({ error: 'Patient data is required' });
+    }
+  
+    try {
+      // Call the utility function to generate the healthcare plan
+      const plan = await generateHealthPlan(patientData);
+  
+      // Send the plan back as a response
+      res.json(plan);
+    } catch (error) {
+      console.error('Error in /generate-health-plan route:', error);
+      res.status(500).json({ error: 'Failed to generate healthcare plan' });
     }
   });
   
