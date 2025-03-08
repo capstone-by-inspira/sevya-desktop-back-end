@@ -31,7 +31,7 @@ app.use("/api/document", userRoutes);
 
 
 app.listen(PORT, () => {
-  console.log(`Server running :  http://localhost:${PORT}`);
+  console.log(`Server running :  http://192.168.1.212:8800`);
 });
 
 
