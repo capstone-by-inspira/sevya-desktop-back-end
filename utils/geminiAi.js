@@ -10,7 +10,7 @@ export const generateHealthPlan = async (patientData) => {
     const response = await axios.post(`${GEMINI_API_URL}`, {
       contents: [{
         parts: [{
-          text: `Generate a healthcare plan for a patient with the following details in a list view having max 10 bullets points: ${JSON.stringify(patientData)}`
+          text: `Generate a healthcare plan for a patient with the following details in a list view having max 15 bullets points on basis of medical diseases and medications and exclude the prompt from response just write name of patient : ${JSON.stringify(patientData)}`
         }]
       }]
     }, {
