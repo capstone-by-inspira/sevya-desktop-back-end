@@ -3,7 +3,7 @@ import {firebaseAdmin, db, serverTimestamp} from "../config/firebaseAdmin.js";
 
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-
+import {clients} from '../server.js'
 dotenv.config();
 
 const router = express.Router();
@@ -35,6 +35,19 @@ router.post("/:collection", verifyJWT, async (req, res) => {
     const { collection } = req.params;
     const data = req.body;
     const docRef = await db.collection(collection).add({ ...data, createdAt: new Date() });
+
+    const message = JSON.stringify({
+      event: "data_updated",
+      collection, // Indicate which collection was updated
+      action: "created", // Indicate the action (created, updated, deleted)
+      data: { id: docRef.id, ...data, createdAt: new Date() }, // Include the new document
+    });
+
+    clients.forEach((client) => {
+      if (client.readyState === client.OPEN) {
+        client.send(message);
+      }
+    });
 
     res.json({ id: docRef.id, ...data });
   } catch (error) {
@@ -120,6 +133,20 @@ router.put("/:collection/:id", verifyJWT, async (req, res) => {
     const data = req.body;
 
     await db.collection(collection).doc(id).update({ ...data, updatedAt: new Date() });
+
+    const message = JSON.stringify({
+      event: "data_updated",
+      collection, // Indicate which collection was updated
+      action: "updated", // Indicate the action (created, updated, deleted)
+      data: { id, ...data, updatedAt: new Date() }, // Include the updated document
+    });
+
+    clients.forEach((client) => {
+      if (client.readyState === client.OPEN) {
+        client.send(message);
+      }
+    });
+
     res.json({ id, ...data });
   } catch (error) {
     res.status(500).json({ error: "Failed to update document" });
@@ -134,8 +161,25 @@ router.delete("/:collection/:id", verifyJWT, async (req, res) => {
   try {
     const { collection, id } = req.params;
     await db.collection(collection).doc(id).delete();
+    
+    const message = JSON.stringify({
+      event: "data_updated",
+      collection, // Indicate which collection was updated
+      action: "deleted", // Indicate the action (created, updated, deleted)
+      data: { id }, // Include the deleted document ID
+    });
+
+    clients.forEach((client) => {
+      if (client.readyState === client.OPEN) {
+        client.send(message);
+      }
+    });
+
+
 
     res.json({ message: "Document deleted successfully" });
+
+    
   } catch (error) {
     res.status(500).json({ error: "Failed to delete document" });
   }
