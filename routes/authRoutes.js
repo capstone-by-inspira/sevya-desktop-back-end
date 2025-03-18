@@ -7,19 +7,12 @@ import {
 } from "../config/firebaseAdmin.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import {sendWelcomeEmail} from '../utils/nodemailer.js'
-import {generateHealthPlan} from '../utils/geminiAi.js'
+import { generateHealthPlan } from '../utils/geminiAi.js'
 
 import { sendWelcomeEmail } from "../utils/nodemailer.js";
-import { generateHealthPlan } from "../utils/geminiAi.js";
 import multer from "multer";
-import {sendWelcomeEmail} from '../utils/nodemailer.js'
-import {generateHealthPlan} from '../utils/geminiAi.js'
-import {translatePatientNotes} from '../utils/googleTranslation.js';
+import { translatePatientNotes } from '../utils/googleTranslation.js';
 
-import { sendWelcomeEmail } from "../utils/nodemailer.js";
-import { generateHealthPlan } from "../utils/geminiAi.js";
-import multer from "multer";
 
 
 dotenv.config();
@@ -142,6 +135,19 @@ router.post("/caregiver/firebase", async (req, res) => {
         .json({ error: "Contact your agency for credintials." });
     }
 
+
+
+    const jwtToken = jwt.sign({ uid, email }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.json({ token: jwtToken, user: { uid, email, name } });
+  } catch (error) {
+    console.error("Auth Error:", error);
+    res.status(401).json({ error: "Authentication failed" });
+  }
+});
+
 router.post('/generate-health-plan', async (req, res) => {
   const { patientData } = req.body;
   try {
@@ -159,52 +165,22 @@ router.post('/generate-health-plan', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate healthcare plan' });
   }
 });
-  router.post('/translate-notes', async (req, res) => {
-    const { notes, language } = req.body;
-    console.log('req', req.body);
-  
+router.post('/translate-notes', async (req, res) => {
+  // const { notes, language } = req.body;
+  console.log('req', req.body);
+  const {patientData} = req.body;
+  const { notes, language } = patientData;
+  console.log('notes,', notes);
+  try {
     if (!notes && !language) {
       return res.status(400).json({ error: 'Content is required to translate' });
     }
+    const translatedData = await translatePatientNotes(notes, language);
 
-    try {
-      const translatedData = await translatePatientNotes(notes, language);
-  
-      res.json(translatedData);
-    } catch (error) {
-      console.error('Error in translate route:', error);
-      res.status(500).json({ error: 'Failed to translate' });
-    }
-  });
-
-
-    const jwtToken = jwt.sign({ uid, email }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    res.json({ token: jwtToken, user: { uid, email, name } });
+    res.json({ translatedText: translatedData });
   } catch (error) {
-    console.error("Auth Error:", error);
-    res.status(401).json({ error: "Authentication failed" });
-  }
-});
-
-router.post("/generate-health-plan", async (req, res) => {
-  const { patientData } = req.body;
-
-  if (!patientData) {
-    return res.status(400).json({ error: "Patient data is required" });
-  }
-
-  try {
-    // Call the utility function to generate the healthcare plan
-    const plan = await generateHealthPlan(patientData);
-
-    // Send the plan back as a response
-    res.json(plan);
-  } catch (error) {
-    console.error("Error in /generate-health-plan route:", error);
-    res.status(500).json({ error: "Failed to generate healthcare plan" });
+    console.error('Error in translate route:', error);
+    res.status(500).json({ error: 'Failed to translate' });
   }
 });
 
@@ -236,7 +212,7 @@ router.post("/upload", upload.single("image"), async (req, res) => {
       //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
       // });
 
-      res.status(200).json({ imageUrl:imageUrl});
+      res.status(200).json({ imageUrl: imageUrl });
     });
 
     stream.on("error", (error) => {
