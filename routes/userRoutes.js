@@ -11,8 +11,6 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 
 
-
-
 // Middleware to verify JWT
 const verifyJWT = (req, res, next) => {
   
@@ -161,7 +159,7 @@ router.delete("/:collection/:id", verifyJWT, async (req, res) => {
   try {
     const { collection, id } = req.params;
     await db.collection(collection).doc(id).delete();
-    
+
     const message = JSON.stringify({
       event: "data_updated",
       collection, // Indicate which collection was updated

@@ -61,8 +61,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/document", userRoutes);
 
 // Start server with WebSockets
-server.listen(PORT, () => {
-  console.log(`Server running at http://192.168.1.212:${PORT}`);
+// server.listen(PORT, () => {
+//   console.log(`Server running at http://192.168.1.212:${PORT}`);
+// });
+server.listen(PORT, app, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
 });
 
 // Export the server and clients set for use in other files

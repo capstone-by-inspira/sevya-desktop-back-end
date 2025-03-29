@@ -199,30 +199,25 @@ router.post("/upload", upload.single("image"), async (req, res) => {
       metadata: { contentType: req.file.mimetype },
     });
 
-    stream.end(req.file.buffer);
-
-    stream.on("finish", async () => {
-      // Make the image public
-      await file.makePublic();
-      const imageUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-
-      // Save URL in Firestore
-      // const docRef = await db.collection("images").add({
-      //   imageUrl,
-      //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      // });
-
-      res.status(200).json({ imageUrl: imageUrl });
-    });
-
     stream.on("error", (error) => {
       console.error("Upload Error:", error);
-      res.status(500).json({ error: "Upload failed" });
+      return res.status(500).json({ error: "Upload failed" });
     });
+
+    stream.on("finish", async () => {
+      // Make the file public
+      await file.makePublic();
+      const imageUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+      console.log("Image uploaded:", imageUrl);
+      return res.status(200).json({ imageUrl });
+    });
+
+    stream.end(req.file.buffer); // Only call this once!
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 export default router;
