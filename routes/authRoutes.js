@@ -228,38 +228,24 @@ router.post("/upload", upload.single("image"), async (req, res) => {
 
 router.post("/upload-audio", upload.single("audio"), async (req, res) => {
   try {
-    // Check if the file exists in the request
     if (!req.file) {
       return res.status(400).json({ error: "No audio file uploaded" });
     }
-
-    // Generate a unique filename for the uploaded audio
     const fileName = `${Date.now()}_${req.file.originalname}`;
     const file = bucket.file(`audios/${fileName}`);
 
-    // Upload audio to Firebase Storage
     const stream = file.createWriteStream({
       metadata: { contentType: req.file.mimetype },
     });
-
-    // Write file buffer to the storage
     stream.end(req.file.buffer);
 
     stream.on("finish", async () => {
-      // Make the audio file public
       await file.makePublic();
       const audioUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
 
-      // Optionally, you can store the audio URL in Firestore or your database
-      // const docRef = await db.collection("audios").add({
-      //   audioUrl,
-      //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      // });
-
-      res.status(200).json({ audioUrl: audioUrl }); // Return the URL of the uploaded audio
+      res.status(200).json({ audioUrl: audioUrl });
     });
 
-    // Error handling for the upload process
     stream.on("error", (error) => {
       console.error("Upload Error:", error);
       res.status(500).json({ error: "Upload failed" });
