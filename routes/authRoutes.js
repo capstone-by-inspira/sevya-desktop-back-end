@@ -220,4 +220,34 @@ router.post("/upload", upload.single("image"), async (req, res) => {
 });
 
 
+router.post("/upload-audio", upload.single("audio"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No audio file uploaded" });
+    }
+    const fileName = `${Date.now()}_${req.file.originalname}`;
+    const file = bucket.file(`audios/${fileName}`);
+
+    const stream = file.createWriteStream({
+      metadata: { contentType: req.file.mimetype },
+    });
+    stream.end(req.file.buffer);
+
+    stream.on("finish", async () => {
+      await file.makePublic();
+      const audioUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+
+      res.status(200).json({ audioUrl: audioUrl });
+    });
+
+    stream.on("error", (error) => {
+      console.error("Upload Error:", error);
+      res.status(500).json({ error: "Upload failed" });
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 export default router;
