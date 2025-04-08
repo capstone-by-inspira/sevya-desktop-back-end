@@ -78,7 +78,6 @@ router.get("/:collection/query", verifyJWT, async (req, res) => {
     const { collection } = req.params;
     const { key, value } = req.query;
 
-    console.log('request', req.query);
     if (!key || !value) {
       return res.status(400).json({ error: "Key and value must be provided" });
     }
@@ -111,7 +110,6 @@ router.get("/:collection/query", verifyJWT, async (req, res) => {
 router.get("/:collection/:id", verifyJWT, async (req, res) => {
   try {
     const { collection, id } = req.params;
-    console.log('request id', req.query, req.params);
     const doc = await db.collection(collection).doc(id).get();
 
     if (!doc.exists) return res.status(404).json({ error: "Document not found" });

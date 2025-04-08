@@ -2,10 +2,7 @@ import dotenv from "dotenv";
 import axios from 'axios';
 dotenv.config();
 
-console.log("GOOGLE_TRANSLATE_API_KEY:", process.env.GOOGLE_TRANSLATE_API_KEY);
-
 export const translatePatientNotes = async (notes, language) => {
-    console.log('notes', notes, language)
     
     const GOOGLE_TRANSLATE_API_URL = `https://translation.googleapis.com/language/translate/v2?key=${process.env.GOOGLE_TRANSLATE_API_KEY}`;
 
@@ -19,7 +16,6 @@ export const translatePatientNotes = async (notes, language) => {
         });
 
         const translatedText = response.data.data.translations[0].translatedText;
-        console.log(translatedText);
         // return response.data.data.translations[0].translatedText;
         return response.data;
     } catch (error) {

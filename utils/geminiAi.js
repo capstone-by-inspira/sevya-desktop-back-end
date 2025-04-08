@@ -5,7 +5,6 @@ dotenv.config();
 // Function to call the Gemini API and generate healthcare plan
 export const generateHealthPlan = async (patientData) => {
   const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-  console.log(GEMINI_API_URL, 'ss');
   try {
     const response = await axios.post(`${GEMINI_API_URL}`, {
       contents: [{
